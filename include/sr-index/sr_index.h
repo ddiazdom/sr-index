@@ -44,6 +44,20 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
     this->loadInner(source);
   }
 
+  [[nodiscard]] std::vector<std::pair<std::string, size_t>> breakdown() const override{
+
+      std::vector<std::pair<std::string, size_t>> parts = Base::breakdown();
+
+      auto child = sdsl::structure_tree::add_child(nullptr, "", sdsl::util::class_name(*this));
+      nullstream nulls;
+      size_t written_bytes;
+      written_bytes = this->template serializeItem<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), nulls, child, "samples_idx");
+      parts.emplace_back("samples_idx", written_bytes);
+      written_bytes = this->template serializeRank<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), nulls, child, "samples_idx_rank");
+      parts.emplace_back("samples_idx_rank", written_bytes);
+      return parts;
+  }
+
   using typename Base::size_type;
   using typename Base::ItemKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
@@ -53,11 +67,8 @@ class SrIndex : public RIndex<TStorage, TAlphabet, TBwtRLE, TBvMark, TMarkToSamp
     written_bytes += sdsl::write_member(subsample_rate_, out, child, "subsample_rate");
 
     written_bytes += Base::serialize(out, v, name);
-
-    written_bytes += this->template serializeItem<TBvSampleIdx>(
-        key(ItemKey::SAMPLES_IDX), out, child, "samples_idx");
-    written_bytes += this->template serializeRank<TBvSampleIdx>(
-        key(ItemKey::SAMPLES_IDX), out, child, "samples_idx_rank");
+    written_bytes += this->template serializeItem<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), out, child, "samples_idx");
+    written_bytes += this->template serializeRank<TBvSampleIdx>(key(ItemKey::SAMPLES_IDX), out, child, "samples_idx_rank");
 
     return written_bytes;
   }
@@ -267,6 +278,18 @@ class SrIndexValidMark : public SrIndex<
 
   SrIndexValidMark() = default;
 
+  [[nodiscard]] std::vector<std::pair<std::string, size_t>> breakdown() const override{
+
+      std::vector<std::pair<std::string, size_t>> parts = Base::breakdown();
+
+      auto child = sdsl::structure_tree::add_child(nullptr, "", sdsl::util::class_name(*this));
+      nullstream nulls;
+      size_t written_bytes;
+      written_bytes = this->template serializeItem<TBvValidMark>(key(ItemKey::VALID_MARKS), nulls, child, "valid_marks");
+      parts.emplace_back("valid_marks", written_bytes);
+      return parts;
+  }
+
   using typename Base::size_type;
   using typename Base::ItemKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
@@ -370,18 +393,25 @@ class SrIndexValidArea : public SrIndexValidMark<
 
   SrIndexValidArea() = default;
 
+  [[nodiscard]] std::vector<std::pair<std::string, size_t>> breakdown() const override{
+      std::vector<std::pair<std::string, size_t>> parts = Base::breakdown();
+      auto child = sdsl::structure_tree::add_child(nullptr, "", sdsl::util::class_name(*this));
+      nullstream nulls;
+      size_t written_bytes;
+      written_bytes = this->template serializeRank<TBvValidMark, typename TBvValidMark::rank_0_type>( key(ItemKey::VALID_MARKS), nulls, child, "valid_marks_rank");
+      parts.emplace_back("valid_marks_rank", written_bytes);
+      written_bytes = this->template serializeItem<TValidArea>(key(ItemKey::VALID_AREAS), nulls, child, "valid_areas");
+      parts.emplace_back("valid_areas", written_bytes);
+      return parts;
+  }
+
   using typename Base::size_type;
   using typename Base::ItemKey;
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const override {
     auto child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
-
     size_type written_bytes = Base::serialize(out, v, name);
-
-    written_bytes += this->template serializeRank<TBvValidMark, typename TBvValidMark::rank_0_type>(
-        key(ItemKey::VALID_MARKS), out, child, "valid_marks_rank");
-
+    written_bytes += this->template serializeRank<TBvValidMark, typename TBvValidMark::rank_0_type>( key(ItemKey::VALID_MARKS), out, child, "valid_marks_rank");
     written_bytes += this->template serializeItem<TValidArea>(key(ItemKey::VALID_AREAS), out, child, "valid_areas");
-
     return written_bytes;
   }
 
@@ -633,7 +663,7 @@ auto computeSampleToMarkLinksForPhiBackward(const std::string &t_prefix, sdsl::c
   }
 
   // Compute links from samples to marks
-  for (int i = 0; i < subsamples_idx.size(); ++i) {
+  for (size_t i = 0; i < subsamples_idx.size(); ++i) {
     subsample_to_mark_links[i] = (subsamples_idx[i] + 1) % r;
   }
 

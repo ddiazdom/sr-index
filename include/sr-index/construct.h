@@ -31,7 +31,7 @@ auto construct(const sdsl::int_vector<> &t_iv) {
 }
 
 template<typename TIndex>
-void construct(TIndex& t_index, const std::string& t_data_path, Config& t_config) {
+void construct(TIndex& t_index, [[maybe_unused]] const std::string& t_data_path, Config& t_config) {
   constructItems(t_index, t_config);
 
   t_index.load(t_config);
@@ -41,11 +41,11 @@ template<uint8_t t_width>
 void constructIndexBaseItems(const std::string &t_data_path, sri::Config &t_config) {
   switch (t_config.sa_algo) {
     case SDSL_LIBDIVSUFSORT:
-      sdsl::construct_config().byte_algo_sa = sdsl::LIBDIVSUFSORT;
+      sdsl::construct_config::byte_algo_sa = sdsl::LIBDIVSUFSORT;
       inner_sdsl::constructIndexBaseItems<t_width>(t_data_path, t_config);
       break;
     case SDSL_SE_SAIS:
-      sdsl::construct_config().byte_algo_sa = sdsl::SE_SAIS;
+      sdsl::construct_config::byte_algo_sa = sdsl::SE_SAIS;
       inner_sdsl::constructIndexBaseItems<t_width>(t_data_path, t_config);
       break;
     case BIG_BWT:
@@ -261,9 +261,9 @@ void computeSubmarksValidity(std::size_t t_r_prime,
                              TGetNextSubmark t_get_next_submark,
                              TReport t_report) {
   // Marks sampled BWT run heads indices in text and if they are trustworthy
-  std::size_t mark = t_get_next_mark();
+  [[maybe_unused]] std::size_t mark = t_get_next_mark();
   std::size_t submark = t_get_next_submark();
-  for (std::size_t i = 0, j = 0; i < t_r_prime - 1; ++i) {
+  for (std::size_t i = 0; i < t_r_prime - 1; ++i) {
     std::size_t next_mark = t_get_next_mark();
     std::size_t next_submark = t_get_next_submark();
     if (next_mark != next_submark) {

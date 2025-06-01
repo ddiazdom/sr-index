@@ -9,14 +9,13 @@
 #include <utility>
 
 #include <sdsl/config.hpp>
-
-#include <nlohmann/json.hpp>
+#include "../json/include/nlohmann/json.hpp"
 
 namespace sri {
 enum SAAlgo {
-  SDSL_LIBDIVSUFSORT,
-  SDSL_SE_SAIS,
-  BIG_BWT
+  SDSL_LIBDIVSUFSORT=0,
+  SDSL_SE_SAIS=1,
+  BIG_BWT=2
 };
 
 using JSON = nlohmann::json;

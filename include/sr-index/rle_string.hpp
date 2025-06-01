@@ -240,7 +240,7 @@ class rle_string {
 
     assert(pos <= i);
 
-    ulint dist = i - pos;
+    [[maybe_unused]] ulint dist = i - pos;
 
     //otherwise, scan at most B runs
     while (pos < i) {
@@ -416,7 +416,7 @@ class rle_string {
   /* serialize the structure to the ostream
    * \param out	 the ostream
    */
-  size_type serialize(std::ostream &out, sdsl::structure_tree_node *v = nullptr, const std::string &name = "") const {
+  size_type serialize(std::ostream &out, [[maybe_unused]] sdsl::structure_tree_node *v = nullptr, [[maybe_unused]] const std::string &name = "") const {
 
     size_type w_bytes = 0;
 
@@ -757,7 +757,7 @@ class RLEString {
   //! \param t_i Position query
   //! \param t_c Symbol c
   //! \return Rank for symbol c before the position given, i.e., number of symbols c with position less than @p t_i
-  auto rank(std::size_t t_i, const typename TString::value_type &t_c) const {
+  uint64_t rank(std::size_t t_i, const typename TString::value_type &t_c) const {
     assert(t_i <= size());
 
     const auto &runs_per_symbol = runs_per_symbol_[t_c];

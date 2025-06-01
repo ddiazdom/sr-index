@@ -21,6 +21,19 @@
 
 namespace sri {
 
+    struct nullstream : std::ostream {
+        struct nullbuf: std::streambuf {
+            int overflow(int c)
+            {
+                return traits_type::not_eof(c);
+            }
+            int xputc(int) { return 0; }
+            std::streamsize xsputn(char const*, std::streamsize n) { return n; }
+            int sync() { return 0; }
+        } m_sbuf;
+        nullstream(): std::ios(&m_sbuf), std::ostream(&m_sbuf), m_sbuf() {}
+    };
+
 template<typename TStorage = GenericStorage,
     typename TAlphabet = Alphabet<>,
     typename TBwtRLE = RLEString<>,
@@ -43,6 +56,37 @@ class RIndex : public IndexBaseWithExternalStorage<TStorage> {
   void load(std::istream &in) override {
     TSource source(std::ref(in));
     loadInner(source);
+  }
+
+  std::vector<std::pair<std::string, size_t>> breakdown() const override {
+
+      std::vector<std::pair<std::string, size_t>> parts;
+      auto child = sdsl::structure_tree::add_child(nullptr, "", sdsl::util::class_name(*this));
+      nullstream nulls;
+      size_t written_bytes;
+
+      written_bytes = this->template serializeItem<TAlphabet>(key(ItemKey::ALPHABET), nulls, child, "alphabet");
+      parts.emplace_back("alphabet", written_bytes);
+
+      written_bytes = this->template serializeItem<TBwtRLE>(key(ItemKey::NAVIGATE), nulls, child, "bwt");
+      parts.emplace_back("bwt", written_bytes);
+
+      written_bytes = this->template serializeItem<TSample>(key(ItemKey::SAMPLES), nulls, child, "samples");
+      parts.emplace_back("samples", written_bytes);
+
+      written_bytes = this->template serializeItem<TBvMark>(key(ItemKey::MARKS), nulls, child, "marks");
+      parts.emplace_back("marks", written_bytes);
+
+      written_bytes = this->template serializeRank<TBvMark>(key(ItemKey::MARKS), nulls, child, "marks_rank");
+      parts.emplace_back("marks_rank", written_bytes);
+
+      written_bytes = this->template serializeSelect<TBvMark>(key(ItemKey::MARKS), nulls, child, "marks_select");
+      parts.emplace_back("marks_select", written_bytes);
+
+      written_bytes = this->template serializeItem<TMarkToSampleIdx>(key(ItemKey::MARK_TO_SAMPLE), nulls, child, "mark_to_sample");
+      parts.emplace_back("mark_to_sample", written_bytes);
+
+      return parts;
   }
 
   using typename Base::size_type;

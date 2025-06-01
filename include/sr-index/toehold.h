@@ -84,7 +84,7 @@ auto buildComputeDataBackwardSearchStepForPhiBackward(const std::reference_wrapp
     return next_end < next_start || t_bwt.get()[tt_range.second] == tt_c;
   };
 
-  auto create_data = [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range, const auto &tt_step) {
+  auto create_data = [](const auto &tt_range, const auto &tt_c, [[maybe_unused]] const auto &tt_next_range, const auto &tt_step) {
     const auto &[start, end] = tt_range;
     return DataBackwardSearchStep{tt_step, RunDataBackward{tt_c, end}};
   };
@@ -94,7 +94,7 @@ auto buildComputeDataBackwardSearchStepForPhiBackward(const std::reference_wrapp
 
 template<typename TCreateData>
 auto buildComputeDataBackwardSearchStepForPhiForward(const TCreateData &t_create_data) {
-  auto is_lf_trivial_with_psi = [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range) {
+  auto is_lf_trivial_with_psi = [](const auto &tt_range, [[maybe_unused]] const auto &tt_c, const auto &tt_next_range) {
     const auto &[next_start, next_end] = tt_next_range;
     const auto &[start, end] = tt_range;
     return !(next_start < next_end) || (!(start < next_start.run.start) && start < next_start.run.end);
@@ -105,7 +105,7 @@ auto buildComputeDataBackwardSearchStepForPhiForward(const TCreateData &t_create
 
 //TODO Remove this function if is not used
 auto buildComputeDataBackwardSearchStepForPhiForward() {
-  auto create_data = [](const auto &tt_range, const auto &tt_c, const auto &tt_next_range, const auto &tt_step) {
+  auto create_data = []([[maybe_unused]] const auto &tt_range, [[maybe_unused]] const auto &tt_c, const auto &tt_next_range, const auto &tt_step) {
     const auto &[start, end] = tt_next_range;
     return DataBackwardSearchStepForward{tt_step, start.run.start};
   };

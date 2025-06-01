@@ -39,7 +39,7 @@ std::size_t computeBWT(std::size_t t_n,
 
   auto prev_bwt_symbol = bwt_symbol;
   auto prev_text_pos = text_pos;
-  for (int i = 1; i <= last_pos; ++i) {
+  for(size_t i = 1; i <= last_pos; ++i) {
     text_pos = get_text_pos(i);
     bwt_symbol = t_get_text_at(text_pos);
     t_report_bwt(i, bwt_symbol);

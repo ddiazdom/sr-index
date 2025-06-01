@@ -29,7 +29,7 @@ auto lf(const TRankC &t_rank_c,
         const TValue &t_last,
         const TChar &t_c,
         const TCreateNewRange &t_create_range,
-        const TNewRange &t_empty_range) {
+        [[maybe_unused]] const TNewRange &t_empty_range) {
   // Number of c before the interval
   auto c_before_sp = t_rank_c(t_c, t_first);
 

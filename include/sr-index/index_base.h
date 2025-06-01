@@ -66,8 +66,9 @@ class IndexBaseWithExternalStorage : public LocateIndex {
   }
 
   virtual size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, const std::string &name) const = 0;
+  virtual std::vector<std::pair<std::string, size_t>> breakdown() const = 0;
 
- protected:
+protected:
   enum class ItemKey : unsigned char {
     ALPHABET = 0,
     NAVIGATE,
@@ -118,7 +119,7 @@ class IndexBaseWithExternalStorage : public LocateIndex {
   }
 
   template<typename TItem>
-  auto load(TItem &t_item, std::istream &t_in, const std::string &t_key, bool) {
+  auto load(TItem &t_item, std::istream &t_in, [[maybe_unused]] const std::string &t_key, bool) {
     sdsl::load(t_item, t_in);
   }
 

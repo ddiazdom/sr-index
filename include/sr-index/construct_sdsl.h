@@ -72,7 +72,7 @@ void constructBWTRuns(sdsl::cache_config &t_config) {
   auto bwt_run_last_pos = out_int_vector_buf(conf::KEY_BWT_RUN_LAST); // BWT run tail positions in BWT array
   auto bwt_run_last_text_pos = out_int_vector_buf(conf::KEY_BWT_RUN_LAST_TEXT_POS); // BWT run tail positions in text
 
-  size_t n_runs = 0; // # BWT runs
+  [[maybe_unused]] size_t n_runs = 0; // # BWT runs
 
   // First BWT value
   auto bwt_symbol = bwt_buf[0];
@@ -84,7 +84,7 @@ void constructBWTRuns(sdsl::cache_config &t_config) {
 
   auto prev_bwt_symbol = bwt_symbol;
   auto prev_text_pos = text_pos;
-  for (int i = 1; i < n; ++i) {
+  for (size_t i = 1; i < n; ++i) {
     bwt_symbol = bwt_buf[i];
     text_pos = get_bwt_text_pos(i);
 
@@ -127,38 +127,50 @@ void constructIndexBaseItems(const std::string &t_data_path, sdsl::cache_config 
   // Parse Text
   const char *KEY_TEXT = sdsl::key_text_trait<t_width>::KEY_TEXT;
   if (!cache_file_exists(KEY_TEXT, t_config)) {
-    auto event = sdsl::memory_monitor::event("Text");
-    constructText<t_width>(t_data_path, t_config);
+      std::cout<<"Processing the text"<<std::endl;
+      auto event = sdsl::memory_monitor::event("Text");
+      constructText<t_width>(t_data_path, t_config);
+      std::cout<<"Done!"<<std::endl;
   }
 
   // Construct Suffix Array
   if (!cache_file_exists(sdsl::conf::KEY_SA, t_config)) {
-    auto event = sdsl::memory_monitor::event("SA");
-    sdsl::construct_sa<t_width>(t_config);
+      std::cout<<"Computing the SA"<<std::endl;
+      auto event = sdsl::memory_monitor::event("SA");
+      sdsl::construct_sa<t_width>(t_config);
+      std::cout<<"Done!"<<std::endl;
   }
 
   // Construct BWT
   if (!cache_file_exists(sdsl::key_bwt_trait<t_width>::KEY_BWT, t_config)) {
-    auto event = sdsl::memory_monitor::event("BWT");
-    sdsl::construct_bwt<t_width>(t_config);
+      std::cout<<"Computing the BWT"<<std::endl;
+      auto event = sdsl::memory_monitor::event("BWT");
+      sdsl::construct_bwt<t_width>(t_config);
+      std::cout<<"Done!"<<std::endl;
   }
 
   // Construct BWT Runs
   if (!cache_file_exists(conf::KEY_BWT_RUN_FIRST, t_config)) {
-    auto event = sdsl::memory_monitor::event("BWT Runs");
-    constructBWTRuns<t_width>(t_config);
+      std::cout<<"Run-length compressing the BWT"<<std::endl;
+      auto event = sdsl::memory_monitor::event("BWT Runs");
+      constructBWTRuns<t_width>(t_config);
+      std::cout<<"Done!"<<std::endl;
   }
 
   // Construct Alphabet
   if (!cache_file_exists(conf::KEY_ALPHABET, t_config)) {
-    auto event = sdsl::memory_monitor::event("Alphabet");
-    constructAlphabet<t_width>(t_config);
+      std::cout<<"Computing text alphabet"<<std::endl;
+      auto event = sdsl::memory_monitor::event("Alphabet");
+      constructAlphabet<t_width>(t_config);
+      std::cout<<"Done!"<<std::endl;
   }
 
   // Construct BWT RLE
   if (!cache_file_exists(conf::KEY_BWT_RLE, t_config)) {
-    auto event = sdsl::memory_monitor::event("BWT RLE");
-    constructBWTRLE<t_width>(t_config);
+      std::cout<<"Computing the RLBWT"<<std::endl;
+      auto event = sdsl::memory_monitor::event("BWT RLE");
+      constructBWTRLE<t_width>(t_config);
+      std::cout<<"Done!"<<std::endl;
   }
 }
 

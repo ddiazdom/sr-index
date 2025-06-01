@@ -30,7 +30,7 @@ Given a text `input_file.txt`, you can obtain the sr-index with the command
 ./sr-index-cli build input_file.txt -s 4 -i sr-index-variant -o resulting_index 
 ```
 
-where `-s` is the subsampling value and `-i` is the subsampling value. (see Cobas et al., 2024), and `-o` is the name
+where `-s` is the subsampling value and `-i` is the sr-index variant. (see Cobas et al., 2024), and `-o` is the name
 of the output index.
 
 This is the full help of the subcommand `sr-index-cli build`:

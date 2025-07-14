@@ -44,7 +44,7 @@ void test_count(std::string input_file, std::string& pat_file, std::string index
         acc_count+=ans.second-ans.first;
     }
 
-    std::cout<<"Index name "<<index_name<<std::endl;
+    std::cout<<"Index type \""<<index_name<<"\""<<std::endl;
     std::cout<<"\tTotal number of occurrences "<<acc_count<<std::endl;
     std::cout<<"\t"<<double(acc_time)/double(n_pats)<<" nanosecs/pat"<<std::endl;
     std::cout<<"\t"<<double(acc_time)/double(acc_count)<<" nanosecs/occ"<<std::endl;

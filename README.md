@@ -8,9 +8,18 @@ interface to run experiments.
 The sr-index is an FM-index variant that offers one of the best trade-offs between space usage and query speed in the literature.
 Any new compressed suffix array should be compared against it. However, the current implementation is not simple to use. 
 
-## External dependencies
+## External libraries
 
 * [CLI11](https://github.com/CLIUtils/CLI11) for the command line interface
+
+## Dependencies
+
+This repository requires
+
+* [SDSL]()
+* [BigBWT]()
+
+to be installed before compilation.
 
 ## Compiling the project
 

@@ -13,6 +13,14 @@ auto t2 = std::chrono::high_resolution_clock::now();\
 time_answer += std::chrono::duration_cast<time_unit>( t2 - t1 ).count();\
 }
 
+#define MEASURE_VOID(query, time_answer, time_unit) \
+{\
+auto t1 = std::chrono::high_resolution_clock::now();\
+query;\
+auto t2 = std::chrono::high_resolution_clock::now();\
+time_answer += std::chrono::duration_cast<time_unit>( t2 - t1 ).count();\
+}
+
 using ulint = uint64_t;
 //parse pizza&chilli patterns header:
 void header_error(){

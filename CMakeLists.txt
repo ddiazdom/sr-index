@@ -132,7 +132,7 @@ include(ConfigBigBWT)
 #    add_subdirectory(benchmark)
 #endif ()
 set(JSON_BuildTests OFF CACHE INTERNAL "")
-add_subdirectory(include/json)
+#add_subdirectory(include/json)
 find_package(LibSDSL REQUIRED)
 
 add_executable(sr-index-cli sr-index-cli.cpp)

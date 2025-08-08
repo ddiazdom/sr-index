@@ -50,6 +50,30 @@ void test_count(std::string input_file, std::string& pat_file, std::string index
     std::cout<<"\t"<<double(acc_time)/double(acc_count)<<" nanosecs/occ"<<std::endl;
 }
 
+template<class index_type>
+void test_locate(std::string input_file, std::string& pat_file, std::string index_name){
+
+    index_type index;
+    sdsl::load_from_file(index, input_file);
+
+    uint64_t n_pats, pat_len;
+    std::vector<std::string> pat_list = file2pat_list(pat_file, n_pats, pat_len);
+
+    size_t acc_time=0;
+    std::pair<size_t, size_t> ans;
+    size_t acc_count=0;
+    for(auto const& p : pat_list) {
+        std::vector<size_t> occ;
+        MEASURE(index.Locate(p), acc_time, occ, std::chrono::nanoseconds)
+        acc_count+=occ.size();
+    }
+
+    std::cout<<"Index type \""<<index_name<<"\""<<std::endl;
+    std::cout<<"\tTotal number of occurrences "<<acc_count<<std::endl;
+    std::cout<<"\t"<<double(acc_time)/double(n_pats)<<" nanosecs/pat"<<std::endl;
+    std::cout<<"\t"<<double(acc_time)/double(acc_count)<<" nanosecs/occ"<<std::endl;
+}
+
 static void parse_app(CLI::App& app, struct arguments& args){
     
 	auto fmt = std::make_shared<MyFormatter>();
@@ -70,8 +94,11 @@ static void parse_app(CLI::App& app, struct arguments& args){
     count->add_option("INDEX", args.input_file, "Index file")->check(CLI::ExistingFile)->required();
     count->add_option("PAT_FILE", args.pat_file, "List of patterns")->check(CLI::ExistingFile)->required();
     count->add_option("-i,--index-type", args.index_type, "Subsample r-index variant (0=standard, 1=valid_marks, 2=valid_area)")->required();
-    auto * locate = app.add_subcommand("locate");
 
+    auto * locate = app.add_subcommand("locate");
+    locate->add_option("INDEX", args.input_file, "Index file")->check(CLI::ExistingFile)->required();
+    locate->add_option("PAT_FILE", args.pat_file, "List of patterns")->check(CLI::ExistingFile)->required();
+    locate->add_option("-i,--index-type", args.index_type, "Subsample r-index variant (0=standard, 1=valid_marks, 2=valid_area)")->required();
 
     auto * bkdown = app.add_subcommand("breakdown");
     bkdown->add_option("INDEX", args.input_file, "Index to be read")->check(CLI::ExistingFile)->required();
@@ -155,7 +182,23 @@ int main(int argc, char** argv) {
                 exit(1);
         }
     } else if(app.got_subcommand("locate")){
-
+        switch (args.index_type) {
+            case SRI_INDEX:
+                std::cout<<"Index type: sri"<<std::endl;
+                test_locate<sri::SrIndex<>>(args.input_file, args.pat_file, "sri");
+                break;
+            case SRI_VALID_MARKS:
+                std::cout<<"Index type: sri_valid_marks"<<std::endl;
+                test_locate<sri::SrIndexValidMark<>>(args.input_file, args.pat_file, "sri_valid_marks");
+                break;
+            case SRI_VALID_AREA:
+                std::cout<<"Index type: sri_valid_area"<<std::endl;
+                test_locate<sri::SrIndexValidArea<>>(args.input_file, args.pat_file, "sri_valid_area");
+                break;
+            default:
+                std::cerr<<"Unknown subsample r-index type"<<std::endl;
+                exit(1);
+        }
     } else if(app.got_subcommand("breakdown")){
         switch (args.index_type) {
             case SRI_INDEX:

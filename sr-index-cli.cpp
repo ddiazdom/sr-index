@@ -44,6 +44,7 @@ void test_count(std::string input_file, std::string& pat_file, std::string index
         acc_count+=ans.second-ans.first;
     }
 
+    std::cout<<std::fixed<<std::setprecision(3);
     std::cout<<"Index type \""<<index_name<<"\""<<std::endl;
     std::cout<<"\tTotal number of occurrences "<<acc_count<<std::endl;
     std::cout<<"\t"<<double(acc_time)/double(n_pats)<<" nanosecs/pat"<<std::endl;
@@ -64,14 +65,15 @@ void test_locate(std::string input_file, std::string& pat_file, std::string inde
     size_t acc_count=0;
     for(auto const& p : pat_list) {
         std::vector<size_t> occ;
-        MEASURE(index.Locate(p), acc_time, occ, std::chrono::nanoseconds)
+        MEASURE(index.Locate(p), acc_time, occ, std::chrono::microseconds)
         acc_count+=occ.size();
     }
 
+    std::cout<<std::fixed<<std::setprecision(3);
     std::cout<<"Index type \""<<index_name<<"\""<<std::endl;
     std::cout<<"\tTotal number of occurrences "<<acc_count<<std::endl;
-    std::cout<<"\t"<<double(acc_time)/double(n_pats)<<" nanosecs/pat"<<std::endl;
-    std::cout<<"\t"<<double(acc_time)/double(acc_count)<<" nanosecs/occ"<<std::endl;
+    std::cout<<"\t"<<double(acc_time)/double(n_pats)<<" microsecs/pat"<<std::endl;
+    std::cout<<"\t"<<double(acc_time)/double(acc_count)<<" microsecs/occ"<<std::endl;
 }
 
 static void parse_app(CLI::App& app, struct arguments& args){

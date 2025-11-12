@@ -342,6 +342,7 @@ void constructRIndex(const std::string &t_data_path, sri::Config &t_config) {
 
   {
     // Construct Links from Mark to Sample
+    std::cout<<"Constructing Mark to Sample Links"<<std::endl;
     auto event = sdsl::memory_monitor::event("Mark2Sample Links");
     if (!cache_file_exists(conf::KEY_BWT_RUN_FIRST_TEXT_POS_SORTED_TO_LAST_IDX, t_config)) {
       constructMarkToSampleLinksForPhiBackward(t_config);
@@ -356,6 +357,7 @@ void constructRIndex(const std::string &t_data_path, sri::Config &t_config) {
 
   {
     // Construct Predecessor on the text positions of BWT run first letter
+    std::cout<<"Constructing Predecessor"<<std::endl;
     auto event = sdsl::memory_monitor::event("Predecessor");
     const auto key_marks = conf::KEY_BWT_RUN_FIRST_TEXT_POS;
     if (!sdsl::cache_file_exists<TBvMark>(key_marks, t_config)) {

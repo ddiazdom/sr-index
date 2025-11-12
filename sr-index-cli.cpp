@@ -4,6 +4,39 @@
 #include "include/sr-index/config.h"
 #include "sri_cli_utils.h"
 
+#include <filesystem>
+#include <random>
+
+// Helper: generate a random hex string for unique names
+std::string random_hex(std::size_t length = 16) {
+    static std::mt19937_64 rng{std::random_device{}()};
+    static std::uniform_int_distribution<uint64_t> dist;
+
+    std::ostringstream oss;
+    while (oss.tellp() < static_cast<std::streamoff>(length)) {
+        oss << std::hex << std::setw(16) << std::setfill('0') << dist(rng);
+    }
+    return oss.str().substr(0, length);
+}
+
+namespace fs = std::filesystem;
+std::string create_tmp_dir(std::string prefix=""){
+    fs::path temp_root;
+    if (prefix.empty()) {
+        temp_root = fs::temp_directory_path();
+    }else {
+        temp_root = prefix;
+    }
+
+    fs::path temp_dir = temp_root / fs::path("sri_"+random_hex(12));
+    while (fs::exists(temp_dir)) {
+        temp_dir = temp_root / fs::path("sri_"+random_hex(12));
+    }
+    fs::create_directories(temp_dir);
+
+    return std::filesystem::absolute(temp_dir).lexically_normal().string();
+}
+
 enum SRI_TYPE{
     SRI_INDEX=0,
     SRI_VALID_MARKS=1,
@@ -13,12 +46,14 @@ enum SRI_TYPE{
 struct arguments{
     std::string input_file;
     std::string output_file;
-    std::string tmp_dir;
+    std::string tmp_dir="";
     std::string pat_file;
     size_t n_threads{};
     size_t ssamp=4;
     sri::SAAlgo sa_algo = sri::SDSL_LIBDIVSUFSORT;
     SRI_TYPE index_type = SRI_VALID_AREA;
+    std::string bigbwt_pref;
+    size_t bytes_sa=5;
 };
 
 class MyFormatter : public CLI::Formatter {
@@ -84,13 +119,23 @@ static void parse_app(CLI::App& app, struct arguments& args){
     app.formatter(fmt);
 
     auto * build = app.add_subcommand("build");
-    build->add_option("TEXT", args.input_file, "Input text to be indexed")->check(CLI::ExistingFile)->required();
     build->add_option("-s,--ssamp", args.ssamp, "Subsampling parameter (def 4)")->default_val(4);
     build->add_option("-i,--index-type", args.index_type, "Subsample r-index variant to be constructed (0=standard, 1=valid_marks, 2=valid_area [def=2])")->default_val(SRI_VALID_AREA)->check(CLI::Range(0,2));
     build->add_option("-t,--threads", args.n_threads, "Maximum number of working threads")->default_val(1);
-    build->add_option("-a,--sa-algorithm", args.sa_algo, "Algorithm for computing the SA (0=LIBDIVSUFSORT, 1=SE_SAIS, 2=BIG_BWT [def=0])")->default_val(LIBDIVSUFSORT)->check(CLI::Range(0,2));
     build->add_option("-o,--output", args.output_file, "Output file where the index will be stored");
-    build->add_option("-T,--tmp", args.tmp_dir, "Temporary folder (def. /tmp/sri.xxxx)")-> check(CLI::ExistingDirectory)->default_val("/tmp");
+    build->add_option("-T,--tmp", args.tmp_dir, "Temporary folder (def. /os_tmp/sri_xxxx)")-> check(CLI::ExistingDirectory);
+    auto *build_algo = build->add_option("-a,--sa-algorithm", args.sa_algo, "Algorithm for computing the SA (0=LIBDIVSUFSORT, 1=SE_SAIS, 2=BIG_BWT [def=0])")->default_val(LIBDIVSUFSORT)->check(CLI::Range(0,2));
+
+    auto * group_option = build->add_option_group("Source of the index components (one of the two is mandatory):");
+    auto *text = group_option->add_option("-t,--text", args.input_file, "Input TEXT to be indexed")->check(CLI::ExistingFile);
+
+    auto *bwt_pref = group_option->add_option("-b,--bigbwt-pref", args.bigbwt_pref, "BigBWT prefix containing the already computed BWT and SA samples")->expected(1)->check(CLI::ExistingFile);
+
+    group_option->require_option(1,2);
+    bwt_pref->excludes(text);
+    bwt_pref->excludes(build_algo);
+
+    build_algo->needs(text);
 
     auto * count = app.add_subcommand("count");
     count->add_option("INDEX", args.input_file, "Index file")->check(CLI::ExistingFile)->required();
@@ -114,6 +159,14 @@ void build_int(std::string input_text, size_t ssamp_val, std::filesystem::path t
     index_type index(ssamp_val);
     sri::Config config(input_text, tmp_path, sa_algo);
     sri::construct(index, input_text, config);
+    sdsl::store_to_file(index, output_file);
+}
+
+template<class index_type>
+void build_from_bigbwt(std::string bigbwt_pref, size_t ssamp_val, std::filesystem::path tmp_path, std::string& output_file){
+    index_type index(ssamp_val);
+    sri::Config config(bigbwt_pref, tmp_path, sri::SAAlgo::BIG_BWT);
+    sri::construct(index, bigbwt_pref, config);
     sdsl::store_to_file(index, output_file);
 }
 
@@ -142,29 +195,62 @@ int main(int argc, char** argv) {
 
     CLI11_PARSE(app, argc, argv);
 
-    if(args.output_file.empty()) args.output_file = args.output_file = std::filesystem::path(args.input_file).filename();
-
     if(app.got_subcommand("build")) {
-        std::cout<<"Building the subsample r-index for "<<args.input_file<<std::endl;
-        std::cout<<"\tSubsampling parameter: "<<args.ssamp<<std::endl;
-        switch (args.index_type) {
-            case SRI_INDEX:
-                args.output_file = std::filesystem::path(args.output_file).replace_extension("sri");
-                build_int<sri::SrIndex<>>(args.input_file, args.ssamp, std::filesystem::current_path(), args.sa_algo, args.output_file);
-                break;
-            case SRI_VALID_MARKS:
-                args.output_file = std::filesystem::path(args.output_file).replace_extension("sri_vm");
-                build_int<sri::SrIndexValidMark<>>(args.input_file, args.ssamp, std::filesystem::current_path(), args.sa_algo, args.output_file);
-                break;
-            case SRI_VALID_AREA:
-                args.output_file = std::filesystem::path(args.output_file).replace_extension("sri_va");
-                build_int<sri::SrIndexValidArea<>>(args.input_file, args.ssamp, std::filesystem::current_path(), args.sa_algo, args.output_file);
-                break;
-            default:
-                std::cerr<<"Unknown subsample r-index type"<<std::endl;
-                exit(1);
+
+        std::string tmp_dir = create_tmp_dir(args.tmp_dir);
+        std::cout<<"Temporary folder: "<<tmp_dir<<std::endl;
+
+        if (!args.input_file.empty()) {
+            assert(args.bigbwt_pref.empty());
+            if(args.output_file.empty()) args.output_file = std::filesystem::path(args.input_file).filename();
+            std::cout<<"Building the subsample r-index for "<<args.input_file<<std::endl;
+            std::cout<<"Subsampling parameter: "<<args.ssamp<<std::endl;
+            switch (args.index_type) {
+                case SRI_INDEX:
+                    args.output_file = std::filesystem::path(args.output_file).replace_extension("sri");
+                    build_int<sri::SrIndex<>>(args.input_file, args.ssamp, tmp_dir, args.sa_algo, args.output_file);
+                    break;
+                case SRI_VALID_MARKS:
+                    args.output_file = std::filesystem::path(args.output_file).replace_extension("sri_vm");
+                    build_int<sri::SrIndexValidMark<>>(args.input_file, args.ssamp, tmp_dir, args.sa_algo, args.output_file);
+                    break;
+                case SRI_VALID_AREA:
+                    args.output_file = std::filesystem::path(args.output_file).replace_extension("sri_va");
+                    build_int<sri::SrIndexValidArea<>>(args.input_file, args.ssamp, tmp_dir, args.sa_algo, args.output_file);
+                    break;
+                default:
+                    std::cerr<<"Unknown subsample r-index type"<<std::endl;
+                    exit(1);
+            }
+            std::cout<<"The output index was stored in "<<args.output_file<<std::endl;
+        } else if (!args.bigbwt_pref.empty()) {
+            assert(args.input_file.empty());
+
+            if(args.output_file.empty()) args.output_file = std::filesystem::path(args.bigbwt_pref).filename();
+
+            std::cout<<"Building the subsample r-index from the precomputed BWT/SA elements in "<<args.bigbwt_pref<<std::endl;
+            std::cout<<"Subsampling parameter: "<<args.ssamp<<std::endl;
+            switch (args.index_type) {
+                case SRI_INDEX:
+                    args.output_file = std::filesystem::path(args.output_file).replace_extension("sri");
+                    build_from_bigbwt<sri::SrIndex<>>(args.bigbwt_pref, args.ssamp, tmp_dir, args.output_file);
+                    break;
+                case SRI_VALID_MARKS:
+                    args.output_file = std::filesystem::path(args.output_file).replace_extension("sri_vm");
+                    build_from_bigbwt<sri::SrIndexValidMark<>>(args.bigbwt_pref, args.ssamp, tmp_dir, args.output_file);
+                    break;
+                case SRI_VALID_AREA:
+                    args.output_file = std::filesystem::path(args.output_file).replace_extension("sri_va");
+                    build_from_bigbwt<sri::SrIndexValidArea<>>(args.bigbwt_pref, args.ssamp, tmp_dir, args.output_file);
+                    break;
+                default:
+                    std::cerr<<"Unknown subsample r-index type"<<std::endl;
+                    exit(1);
+            }
+            std::uintmax_t removed = fs::remove_all(tmp_dir);
+            std::cout<<"The output index was stored in "<<args.output_file<<std::endl;
         }
-        std::cout<<"The output index was stored in "<<args.output_file<<std::endl;
+
     } else if(app.got_subcommand("count")){
         switch (args.index_type) {
             case SRI_INDEX:

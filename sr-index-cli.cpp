@@ -96,7 +96,6 @@ void test_locate(std::string input_file, std::string& pat_file, std::string inde
     std::vector<std::string> pat_list = file2pat_list(pat_file, n_pats, pat_len);
 
     size_t acc_time=0;
-    std::pair<size_t, size_t> ans;
     size_t acc_count=0;
     for(auto const& p : pat_list) {
         std::vector<size_t> occ;

@@ -80,7 +80,7 @@ void test_count(std::string input_file, std::string& pat_file, std::string index
     std::pair<size_t, size_t> ans;
     for(auto const& p : pat_list) {
         MEASURE(index.Count(p), acc_time, ans, std::chrono::nanoseconds)
-        acc_count+=ans.second-ans.first;
+        acc_count+=ans.second-ans.first+1;
     }
 
     //std::cout<<std::fixed<<std::setprecision(3);

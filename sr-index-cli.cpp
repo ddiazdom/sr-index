@@ -68,22 +68,32 @@ void test_count(std::string input_file, std::string& pat_file, std::string index
     index_type index;
     sdsl::load_from_file(index, input_file);
 
+    const double bps = double(std::filesystem::file_size(input_file)*8)/double(index.sizeSequence());
+    const std::string file = std::filesystem::path(input_file).filename();
+
     uint64_t n_pats, pat_len;
-    std::vector<std::string> pat_list = file2pat_list(pat_file, n_pats, pat_len);
+    const std::vector<std::string> pat_list = file2pat_list(pat_file, n_pats, pat_len);
 
     size_t acc_time=0;
-    std::pair<size_t, size_t> ans;
     size_t acc_count=0;
+    std::pair<size_t, size_t> ans;
     for(auto const& p : pat_list) {
         MEASURE(index.Count(p), acc_time, ans, std::chrono::nanoseconds)
         acc_count+=ans.second-ans.first;
     }
 
+    //std::cout<<std::fixed<<std::setprecision(3);
+    //std::cout<<"Index type \""<<index_name<<"\""<<std::endl;
+    //std::cout<<"\tTotal number of occurrences "<<acc_count<<std::endl;
+    //std::cout<<"\t"<<double(acc_time)/double(n_pats)<<" nanosecs/pat"<<std::endl;
+    //std::cout<<"\t"<<double(acc_time)/double(acc_count)<<" nanosecs/occ"<<std::endl;
+
+    const double ns_per_pat = double(acc_time)/double(n_pats);
+    const double ns_per_occ = double(acc_time)/double(acc_count);
+
     std::cout<<std::fixed<<std::setprecision(3);
-    std::cout<<"Index type \""<<index_name<<"\""<<std::endl;
-    std::cout<<"\tTotal number of occurrences "<<acc_count<<std::endl;
-    std::cout<<"\t"<<double(acc_time)/double(n_pats)<<" nanosecs/pat"<<std::endl;
-    std::cout<<"\t"<<double(acc_time)/double(acc_count)<<" nanosecs/occ"<<std::endl;
+    std::cout<<"#file\tindex_type\tbits_per_sym\tn_pats\tpat_len\tn_occ\tnanosecs/pat\tnanosecs/occ"<<std::endl;
+    std::cout<<file<<"\t"<<index_name<<"\t"<<bps<<"\t"<<n_pats<<"\t"<<pat_len<<"\t"<<acc_count<<"\t"<<ns_per_pat<<"\t"<<ns_per_occ<<std::endl;
 }
 
 template<class index_type>
@@ -92,22 +102,33 @@ void test_locate(std::string input_file, std::string& pat_file, std::string inde
     index_type index;
     sdsl::load_from_file(index, input_file);
 
+    const double bps = double(std::filesystem::file_size(input_file)*8)/double(index.sizeSequence());
+    const std::string file = std::filesystem::path(input_file).filename();
+    index_name=index_name+"_s_"+std::to_string(index.SubsampleRate());
+
     uint64_t n_pats, pat_len;
-    std::vector<std::string> pat_list = file2pat_list(pat_file, n_pats, pat_len);
+    const std::vector<std::string> pat_list = file2pat_list(pat_file, n_pats, pat_len);
 
     size_t acc_time=0;
     size_t acc_count=0;
     for(auto const& p : pat_list) {
         std::vector<size_t> occ;
-        MEASURE(index.Locate(p), acc_time, occ, std::chrono::microseconds)
+        MEASURE(index.Locate(p), acc_time, occ, std::chrono::nanoseconds)
         acc_count+=occ.size();
     }
 
+    const double ns_per_pat = double(acc_time)/double(n_pats);
+    const double ns_per_occ = double(acc_time)/double(acc_count);
+
     std::cout<<std::fixed<<std::setprecision(3);
-    std::cout<<"Index type \""<<index_name<<"\""<<std::endl;
-    std::cout<<"\tTotal number of occurrences "<<acc_count<<std::endl;
-    std::cout<<"\t"<<double(acc_time)/double(n_pats)<<" microsecs/pat"<<std::endl;
-    std::cout<<"\t"<<double(acc_time)/double(acc_count)<<" microsecs/occ"<<std::endl;
+    std::cout<<"#file\tindex_type\tbits_per_sym\tn_pats\tpat_len\tn_occ\tnanosecs/pat\tnanosecs/occ"<<std::endl;
+    std::cout<<file<<"\t"<<index_name<<"\t"<<bps<<"\t"<<n_pats<<"\t"<<pat_len<<"\t"<<acc_count<<"\t"<<ns_per_pat<<"\t"<<ns_per_occ<<std::endl;
+
+    //std::cout<<std::fixed<<std::setprecision(3);
+    //std::cout<<"Index type \""<<index_name<<"\""<<std::endl;
+    //std::cout<<"\tTotal number of occurrences "<<acc_count<<std::endl;
+    //std::cout<<"\t"<<double(acc_time)/double(n_pats)<<" microsecs/pat"<<std::endl;
+    //std::cout<<"\t"<<double(acc_time)/double(acc_count)<<" microsecs/occ"<<std::endl;
 }
 
 static void parse_app(CLI::App& app, struct arguments& args){
@@ -253,15 +274,12 @@ int main(int argc, char** argv) {
     } else if(app.got_subcommand("count")){
         switch (args.index_type) {
             case SRI_INDEX:
-                std::cout<<"Index type: sri"<<std::endl;
                 test_count<sri::SrIndex<>>(args.input_file, args.pat_file, "sri");
                 break;
             case SRI_VALID_MARKS:
-                std::cout<<"Index type: sri_valid_marks"<<std::endl;
                 test_count<sri::SrIndexValidMark<>>(args.input_file, args.pat_file, "sri_valid_marks");
                 break;
             case SRI_VALID_AREA:
-                std::cout<<"Index type: sri_valid_area"<<std::endl;
                 test_count<sri::SrIndexValidArea<>>(args.input_file, args.pat_file, "sri_valid_area");
                 break;
             default:
@@ -271,15 +289,12 @@ int main(int argc, char** argv) {
     } else if(app.got_subcommand("locate")){
         switch (args.index_type) {
             case SRI_INDEX:
-                std::cout<<"Index type: sri"<<std::endl;
                 test_locate<sri::SrIndex<>>(args.input_file, args.pat_file, "sri");
                 break;
             case SRI_VALID_MARKS:
-                std::cout<<"Index type: sri_valid_marks"<<std::endl;
                 test_locate<sri::SrIndexValidMark<>>(args.input_file, args.pat_file, "sri_valid_marks");
                 break;
             case SRI_VALID_AREA:
-                std::cout<<"Index type: sri_valid_area"<<std::endl;
                 test_locate<sri::SrIndexValidArea<>>(args.input_file, args.pat_file, "sri_valid_area");
                 break;
             default:

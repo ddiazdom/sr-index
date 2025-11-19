@@ -140,7 +140,8 @@ target_link_libraries(sr-index-cli LINK_PUBLIC ${LIBSDSL_LIBRARIES})
 target_link_libraries(sr-index-cli INTERFACE nlohmann_json::nlohmann_json)
 target_compile_options(sr-index-cli
         PRIVATE
-        -O3 -funroll-loops -fomit-frame-pointer -ffast-math
+        #-O3 -funroll-loops -fomit-frame-pointer -ffast-math
+        -Wall -pedantic -O3 -ffast-math -g
         INTERFACE
         -Wshadow
 )

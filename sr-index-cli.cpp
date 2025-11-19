@@ -70,6 +70,7 @@ void test_count(std::string input_file, std::string& pat_file, std::string index
 
     const double bps = double(std::filesystem::file_size(input_file)*8)/double(index.sizeSequence());
     const std::string file = std::filesystem::path(input_file).filename();
+    index_name=index_name+"_s_"+std::to_string(index.SubsampleRate());
 
     uint64_t n_pats, pat_len;
     const std::vector<std::string> pat_list = file2pat_list(pat_file, n_pats, pat_len);
